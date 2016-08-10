@@ -6,6 +6,8 @@ const functionMap = {
     "String": createString,
     "Number": createNumber
 };
+const RandExp = require("randexp"); // must require on node
+//new RandExp(/<([a-z]\w{0,20})>foo<\1>/).gen();
 const illegal_keys = ["_id","__v"];
 let schema = require("./model/event").schema.paths;
 let _ = require("lodash");
@@ -13,11 +15,13 @@ let _ = require("lodash");
 
 console.log(createObject(schema));
 
-function createNumber(){
-    return Math.round(Math.random()*150);
+function createNumber(specs){
+    let Min = specs.options.min || Number.MIN_SAFE_INTEGER;
+    let Max = specs.options.max || Number.MAX_SAFE_INTEGER;
+    return  Min + Math.floor(Math.random() * ((Max - Min) + 1))
 }
 function createString(specs){
-    return randomString();
+    return specs.options.match ? new RandExp(specs.options.match).gen() : new RandExp(/\w{6,30}/).gen();
 }
 function createArray(specs) {
     if (specs.$isMongooseDocumentArray){ // if specs has a schema then it means in the array there are objects
@@ -45,12 +49,13 @@ function createObject(schema){
     _.each(keys, function (key) {
         if(illegal_keys.indexOf(key) >= 0) return;
         let specs = schema[key];
+        if(!specs.isRequired && Math.random() < 0.2) return; // if not required then p(not creating this object) ~= 0.2
         if(functionMap[specs.instance]) {
             let value = checkEnumValues(specs) || functionMap[specs.instance](specs);
             outputObject[key] = value;
         }
     });
-    return JSON.parse(JSON.stringify(outputObject));
+    return outputObject;
 }
 function  checkEnumValues(specs) {
     if(specs.enumValues && specs.enumValues.length > 0){
@@ -58,15 +63,4 @@ function  checkEnumValues(specs) {
         return specs.enumValues[randomIndex];
     }
     return undefined;
-}
-
-function randomString()
-{
-    let text = "";
-    let possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-    let randomNumber = Math.round(Math.random()*10)+1;
-    for( let i=0; i < randomNumber; i++ )
-        text += possible.charAt(Math.floor(Math.random() * possible.length));
-
-    return text;
 }
