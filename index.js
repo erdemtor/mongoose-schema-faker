@@ -4,18 +4,20 @@
 const Factory = require("./lib/factory");
 const fs = require("fs");
 const Async = require("async");
-let model = require("./model/tag");
-let schema = model.schema.paths;
 const callback = function (err, res) {
-    console.log(err + " "+ res);
+    endTime = new Date().getTime();
+    console.log((endTime - startTime)/1000);
+    console.log(res)
 };
+let startTime, endTime;
 Async.auto({
     "connect" : function(acb){
         require("./lib/floppy")(require("./config/config").mongooseUrl,acb)
     },
     "create": ["connect", function (result ,acb) {
-       let factory = new Factory(model);
-        factory.createObject(schema,100000,acb);
+       let factory = new Factory("/home/erdem/WebstormProjects/mongoose-schema-faker/model");
+        startTime = new Date().getTime();
+        factory.readAndCreate()
     }]
 },callback);
 
